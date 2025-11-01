@@ -1,6 +1,7 @@
 """
 Ultra-Modern Mancala - AI vs AI
 Watch two AIs battle with stunning visual effects
+FIXED VERSION: Remaining stones NOT added to store at game end
 """
 import pygame
 import sys
@@ -59,10 +60,10 @@ def calculate_winning_probability(mancala, player):
         stones_difference = mancala[6] - mancala[13]
     else:
         stones_difference = mancala[13] - mancala[6]
-    
+
     extra_turn = 0
     capturing_opportunity = 0
-    
+
     if player == 1:
         for i in range(6):
             if mancala[i] > 0 and (i + mancala[i]) == 6:
@@ -81,12 +82,12 @@ def calculate_winning_probability(mancala, player):
             if mancala[i] == 0 and mancala[12 - i] > 0:
                 capturing_opportunity = 1
                 break
-    
+
     winning_sim.input['stones_diff'] = stones_difference
     winning_sim.input['extra_turns'] = extra_turn
     winning_sim.input['capturing_opportunities'] = capturing_opportunity
     winning_sim.compute()
-    
+
     return winning_sim.output['winning_prob']
 
 
@@ -96,7 +97,7 @@ def draw_animated_background(surface, phase):
                               Colors.BG_GRADIENT_END,
                               pygame.Rect(0, 0, Dimensions.SCREEN_WIDTH, Dimensions.SCREEN_HEIGHT),
                               vertical=True)
-    
+
     for i in range(3):
         x = Dimensions.SCREEN_WIDTH * (0.2 + i * 0.3)
         y = Dimensions.SCREEN_HEIGHT * 0.5 + 100 * pygame.math.Vector2(1, 0).rotate(phase + i * 120).y
@@ -110,18 +111,18 @@ def draw_board(mancala, animation_manager, highlight_pit=None, ai1_prob=0,
                ai2_prob=0, turn_message="", move_count=0, phase=0):
     """Draw the ultra-modern game board"""
     draw_animated_background(screen, phase)
-    
+
     board_rect = LayoutCalculator.get_board_rect(Dimensions.SCREEN_WIDTH, Dimensions.SCREEN_HEIGHT)
     pit_positions = LayoutCalculator.get_pit_positions(board_rect)
     mancala_positions = LayoutCalculator.get_mancala_positions(board_rect)
-    
+
     shake_offset = animation_manager.get_shake_offset()
-    
+
     # Board with glow
     glow_rect = board_rect.inflate(Dimensions.BOARD_GLOW_RADIUS * 2,
                                    Dimensions.BOARD_GLOW_RADIUS * 2)
     draw_neon_glow(screen, glow_rect.center, board_rect.width // 2, Colors.BOARD_GLOW, 0.3)
-    
+
     # Board background
     board_surf = pygame.Surface((board_rect.width, board_rect.height), pygame.SRCALPHA)
     draw_triple_gradient_rect(board_surf, Colors.BOARD_PRIMARY, Colors.BOARD_SECONDARY,
@@ -130,45 +131,45 @@ def draw_board(mancala, animation_manager, highlight_pit=None, ai1_prob=0,
                               vertical=False, border_radius=Dimensions.BOARD_BORDER_RADIUS)
     board_surf.set_alpha(220)
     screen.blit(board_surf, (board_rect.x + shake_offset[0], board_rect.y + shake_offset[1]))
-    
+
     # Animated border
     draw_animated_border(screen, board_rect.move(shake_offset[0], shake_offset[1]),
                         Colors.BOARD_BORDER, phase, width=4,
                         border_radius=Dimensions.BOARD_BORDER_RADIUS)
-    
+
     # Draw mancala stores
     for store_id, store_rect in mancala_positions.items():
         is_ai1 = store_id == 6
         color1 = Colors.PLAYER1_PRIMARY if is_ai1 else Colors.PLAYER2_PRIMARY
         color2 = Colors.PLAYER1_SECONDARY if is_ai1 else Colors.PLAYER2_SECONDARY
-        
+
         draw_neon_glow(screen,
                       (store_rect.centerx + shake_offset[0], store_rect.centery + shake_offset[1]),
                       store_rect.width // 2, color1, 0.4)
-        
+
         store_surf = pygame.Surface((store_rect.width, store_rect.height), pygame.SRCALPHA)
         draw_gradient_rect(store_surf, color1, color2,
                           pygame.Rect(0, 0, store_rect.width, store_rect.height),
                           vertical=True, border_radius=Dimensions.MANCALA_BORDER_RADIUS)
         store_surf.set_alpha(200)
         screen.blit(store_surf, (store_rect.x + shake_offset[0], store_rect.y + shake_offset[1]))
-        
+
         pygame.draw.rect(screen, color1,
                         store_rect.move(shake_offset[0], shake_offset[1]),
                         width=4, border_radius=Dimensions.MANCALA_BORDER_RADIUS)
-        
+
         score = str(mancala[store_id])
         text_pos = (store_rect.centerx + shake_offset[0], store_rect.centery + shake_offset[1])
         draw_text_with_glow(screen, fonts.large, score, text_pos, Colors.TEXT_PRIMARY,
                            glow_color=color1, glow_intensity=3)
-    
+
     # Draw pits
     for pit_id, pos in pit_positions.items():
         is_ai1_pit = 0 <= pit_id <= 5
         is_highlighted = highlight_pit == pit_id
-        
+
         pit_pos = (pos[0] + shake_offset[0], pos[1] + shake_offset[1])
-        
+
         if is_highlighted:
             pit_color = Colors.PIT_SELECTED
             glow_color = Colors.NEON_YELLOW
@@ -177,15 +178,15 @@ def draw_board(mancala, animation_manager, highlight_pit=None, ai1_prob=0,
             pit_color = Colors.PIT_ACTIVE if mancala[pit_id] > 0 else Colors.PIT_INACTIVE
             glow_color = Colors.PLAYER1_PRIMARY if is_ai1_pit else Colors.PLAYER2_PRIMARY
             glow_intensity = 0.4 if mancala[pit_id] > 0 else 0.1
-        
+
         if glow_intensity > 0.2:
             draw_neon_glow(screen, pit_pos, Dimensions.PIT_RADIUS, glow_color, glow_intensity)
-        
+
         draw_radial_gradient(screen, pit_pos, pit_color, Colors.PIT_INACTIVE, Dimensions.PIT_RADIUS)
-        
+
         border_color = glow_color if mancala[pit_id] > 0 else Colors.PIT_BORDER_INACTIVE
         pygame.draw.circle(screen, border_color, pit_pos, Dimensions.PIT_RADIUS, width=3)
-        
+
         # Inner shadow
         shadow_surf = pygame.Surface((Dimensions.PIT_RADIUS * 3, Dimensions.PIT_RADIUS * 3), pygame.SRCALPHA)
         for i in range(5):
@@ -195,67 +196,76 @@ def draw_board(mancala, animation_manager, highlight_pit=None, ai1_prob=0,
                              Dimensions.PIT_RADIUS - i * 2)
         screen.blit(shadow_surf, (pit_pos[0] - Dimensions.PIT_RADIUS * 1.5,
                                   pit_pos[1] - Dimensions.PIT_RADIUS * 1.5))
-        
+
         stone_count = mancala[pit_id]
         count_color = Colors.TEXT_PRIMARY if stone_count > 0 else Colors.TEXT_SECONDARY
         draw_text_with_glow(screen, fonts.medium, str(stone_count), pit_pos,
                            count_color, glow_color=glow_color if mancala[pit_id] > 0 else None,
                            glow_intensity=2 if mancala[pit_id] > 0 else 0)
-    
+
     animation_manager.draw(screen)
-    
+
     # AI 1 Panel (bottom left) - FIXED: No overlap with board
-    ai1_panel_rect = pygame.Rect(20, Dimensions.SCREEN_HEIGHT - 160, 
+    ai1_panel_rect = pygame.Rect(20, Dimensions.SCREEN_HEIGHT - 160,
                                   Dimensions.PANEL_WIDTH, Dimensions.PANEL_HEIGHT)
     draw_glassmorphic_panel(screen, ai1_panel_rect)
-    
+
     draw_neon_glow(screen, (ai1_panel_rect.x + 40, ai1_panel_rect.y + 30), 15, Colors.PLAYER1_PRIMARY, 0.8)
     pygame.draw.circle(screen, Colors.PLAYER1_PRIMARY, (ai1_panel_rect.x + 40, ai1_panel_rect.y + 30), 15)
-    
+
     ai1_title = fonts.small.render("🤖 AI 1 Win Chance", True, Colors.TEXT_SECONDARY)
     screen.blit(ai1_title, (ai1_panel_rect.x + 70, ai1_panel_rect.y + 20))
-    
+
     draw_text_with_glow(screen, fonts.large, f"{ai1_prob:.1f}%",
                        (ai1_panel_rect.x + 70, ai1_panel_rect.y + 65),
                        Colors.PLAYER1_PRIMARY, glow_color=Colors.PLAYER1_PRIMARY, glow_intensity=2)
-    
+
     bar_rect = pygame.Rect(ai1_panel_rect.x + 25, ai1_panel_rect.y + 105,
                           Dimensions.PANEL_WIDTH - 50, 18)
     from ui_config_enhanced import draw_progress_bar
     draw_progress_bar(screen, bar_rect, ai1_prob / 100,
                      Colors.PLAYER1_PRIMARY, Colors.PLAYER1_SECONDARY)
-    
+
     # AI 2 Panel (top-left corner) - FIXED: Top corner position
     ai2_panel_rect = pygame.Rect(20, 20, Dimensions.PANEL_WIDTH, Dimensions.PANEL_HEIGHT)
     draw_glassmorphic_panel(screen, ai2_panel_rect)
-    
+
     draw_neon_glow(screen, (ai2_panel_rect.x + 40, ai2_panel_rect.y + 30), 15, Colors.PLAYER2_PRIMARY, 0.8)
     pygame.draw.circle(screen, Colors.PLAYER2_PRIMARY, (ai2_panel_rect.x + 40, ai2_panel_rect.y + 30), 15)
-    
+
     ai2_title = fonts.small.render("🤖 AI 2 Win Chance", True, Colors.TEXT_SECONDARY)
     screen.blit(ai2_title, (ai2_panel_rect.x + 70, ai2_panel_rect.y + 20))
-    
+
     draw_text_with_glow(screen, fonts.large, f"{ai2_prob:.1f}%",
                        (ai2_panel_rect.x + 70, ai2_panel_rect.y + 65),
                        Colors.PLAYER2_PRIMARY, glow_color=Colors.PLAYER2_PRIMARY, glow_intensity=2)
-    
+
     bar_rect = pygame.Rect(ai2_panel_rect.x + 25, ai2_panel_rect.y + 105,
                           Dimensions.PANEL_WIDTH - 50, 18)
     draw_progress_bar(screen, bar_rect, ai2_prob / 100,
                      Colors.PLAYER2_PRIMARY, Colors.PLAYER2_SECONDARY)
-    
+
     # Move counter
     move_panel_rect = pygame.Rect(Dimensions.SCREEN_WIDTH - 250, 40, 210, 80)
     draw_glassmorphic_panel(screen, move_panel_rect)
-    
+
     move_text = f"Move: {move_count}"
     draw_text_with_glow(screen, fonts.normal, move_text,
                        (move_panel_rect.centerx, move_panel_rect.centery),
                        Colors.TEXT_PRIMARY, glow_color=Colors.NEON_BLUE, glow_intensity=2)
-    
+
+    # Exit hint panel (below move counter)
+    exit_panel_rect = pygame.Rect(Dimensions.SCREEN_WIDTH - 250, 130, 210, 50)
+    draw_glassmorphic_panel(screen, exit_panel_rect)
+
+    exit_text = "Press ESC to quit"
+    draw_text_with_glow(screen, fonts.small, exit_text,
+                       (exit_panel_rect.centerx, exit_panel_rect.centery),
+                       Colors.TEXT_SECONDARY, glow_color=Colors.NEON_PINK, glow_intensity=1)
+
     # Turn indicator
     animation_manager.draw_turn_indicator(screen, fonts.large)
-    
+
     pygame.display.flip()
 
 
@@ -265,66 +275,66 @@ def game_over_popup(message, ai1_score, ai2_score):
     popup_x = (Dimensions.SCREEN_WIDTH - popup_width) // 2
     popup_y = (Dimensions.SCREEN_HEIGHT - popup_height) // 2
     popup_rect = pygame.Rect(popup_x, popup_y, popup_width, popup_height)
-    
+
     overlay = pygame.Surface((Dimensions.SCREEN_WIDTH, Dimensions.SCREEN_HEIGHT), pygame.SRCALPHA)
     overlay.fill((0, 0, 0, 220))
     screen.blit(overlay, (0, 0))
-    
+
     if "AI 1" in message:
         color1, color2 = Colors.PLAYER1_PRIMARY, Colors.PLAYER1_SECONDARY
     elif "AI 2" in message:
         color1, color2 = Colors.PLAYER2_PRIMARY, Colors.PLAYER2_SECONDARY
     else:
         color1, color2 = Colors.NEON_YELLOW, Colors.NEON_ORANGE
-    
+
     draw_neon_glow(screen, popup_rect.center, popup_width // 2, color1, 0.8, layers=6)
-    
+
     popup_surf = pygame.Surface((popup_width, popup_height), pygame.SRCALPHA)
     draw_gradient_rect(popup_surf, Colors.BG_DARK_PRIMARY, Colors.BG_DARK_SECONDARY,
                       pygame.Rect(0, 0, popup_width, popup_height),
                       vertical=True, border_radius=50)
     popup_surf.set_alpha(240)
     screen.blit(popup_surf, popup_rect.topleft)
-    
+
     for i in range(3):
         border_alpha = 200 - i * 60
         pygame.draw.rect(screen, (*color1, border_alpha), popup_rect.inflate(i * 4, i * 4),
                         width=3, border_radius=50)
-    
+
     draw_text_with_glow(screen, fonts.mega, "GAME OVER",
                        (popup_x + popup_width // 2, popup_y + 100),
                        Colors.TEXT_PRIMARY, glow_color=color1, glow_intensity=4)
-    
+
     draw_text_with_glow(screen, fonts.large, message,
                        (popup_x + popup_width // 2, popup_y + 220),
                        color1, glow_color=color1, glow_intensity=3)
-    
+
     score_y = popup_y + 310
     ai1_text = f"AI 1: {ai1_score}"
     draw_text_with_glow(screen, fonts.medium, ai1_text,
                        (popup_x + popup_width // 2 - 100, score_y),
                        Colors.PLAYER1_PRIMARY, glow_color=Colors.PLAYER1_PRIMARY,
                        glow_intensity=2)
-    
+
     vs_text = fonts.normal.render("VS", True, Colors.TEXT_SECONDARY)
     vs_rect = vs_text.get_rect(center=(popup_x + popup_width // 2, score_y))
     screen.blit(vs_text, vs_rect)
-    
+
     ai2_text = f"AI 2: {ai2_score}"
     draw_text_with_glow(screen, fonts.medium, ai2_text,
                        (popup_x + popup_width // 2 + 100, score_y),
                        Colors.PLAYER2_PRIMARY, glow_color=Colors.PLAYER2_PRIMARY,
                        glow_intensity=2)
-    
+
     instr_y = popup_y + 410
     restart_text = fonts.small.render("Press SPACE to play again", True, Colors.TEXT_SECONDARY)
     restart_rect = restart_text.get_rect(center=(popup_x + popup_width // 2, instr_y))
     screen.blit(restart_text, restart_rect)
-    
+
     quit_text = fonts.small.render("Press ESC to quit", True, Colors.TEXT_SECONDARY)
     quit_rect = quit_text.get_rect(center=(popup_x + popup_width // 2, instr_y + 40))
     screen.blit(quit_text, quit_rect)
-    
+
     pygame.display.flip()
 
 
@@ -336,42 +346,53 @@ class Mancala_Board:
             self.mancala = [4] * 6 + [0] + [4] * 6 + [0]
 
     def player_move(self, i):
+        """Execute a player move with proper game logic"""
         j = i
         repeat_turn = False
         add = self.mancala[j]
         self.mancala[j] = 0
-        if i > 6:
+
+        if i > 6:  # AI 2 (North player, pits 7-12, store 13)
             stones = add
             while stones > 0:
                 i += 1
                 i = i % 14
-                if i == 6:
+                if i == 6:  # Skip opponent's store
                     continue
                 else:
                     self.mancala[i % 14] += 1
                 stones -= 1
-            if i > 6 and self.mancala[i] == 1 and i != 13 and self.mancala[-i + 12] != 0:
-                self.mancala[13] += 1 + self.mancala[-i + 12]
+
+            # Capture logic: last stone lands in empty pit on own side with opposite pit having stones
+            if i > 6 and i < 13 and self.mancala[i] == 1 and self.mancala[12 - i] != 0:
+                self.mancala[13] += 1 + self.mancala[12 - i]
                 self.mancala[i] = 0
-                self.mancala[-i + 12] = 0
+                self.mancala[12 - i] = 0
+
+            # Extra turn if last stone lands in own store
             if i == 13:
                 repeat_turn = True
-        else:
+        else:  # AI 1 (South player, pits 0-5, store 6)
             stones = add
             while stones > 0:
                 i += 1
                 i = i % 14
-                if i == 13:
+                if i == 13:  # Skip opponent's store
                     continue
                 else:
                     self.mancala[i % 14] += 1
                 stones -= 1
-            if i < 6 and self.mancala[i] == 1 and i != 6 and self.mancala[-i + 12] != 0:
-                self.mancala[6] += 1 + self.mancala[-i + 12]
+
+            # Capture logic: last stone lands in empty pit on own side with opposite pit having stones
+            if i >= 0 and i < 6 and self.mancala[i] == 1 and self.mancala[12 - i] != 0:
+                self.mancala[6] += 1 + self.mancala[12 - i]
                 self.mancala[i] = 0
-                self.mancala[-i + 12] = 0
+                self.mancala[12 - i] = 0
+
+            # Extra turn if last stone lands in own store
             if i == 6:
                 repeat_turn = True
+
         return repeat_turn
 
     def animated_player_move(self, pit_index, animation_manager, ai1_prob, ai2_prob, move_count, phase, draw_callback):
@@ -383,9 +404,9 @@ class Mancala_Board:
         repeat_turn = False
         stones_to_distribute = self.mancala[j]
         self.mancala[j] = 0
-        
+
         current_pos = j
-        
+
         if pit_index > 6:  # North player (AI 2)
             while stones_to_distribute > 0:
                 current_pos += 1
@@ -395,29 +416,29 @@ class Mancala_Board:
                 else:
                     self.mancala[current_pos] += 1
                     stones_to_distribute -= 1
-                    
+
                     # Highlight the pit that just received a marble
                     draw_callback(self.mancala, animation_manager, highlight_pit=current_pos,
                                 ai1_prob=ai1_prob, ai2_prob=ai2_prob,
                                 move_count=move_count, phase=phase)
                     time.sleep(0.15)  # Pause to show each marble placement
-            
+
             # Capture logic
-            if current_pos > 6 and self.mancala[current_pos] == 1 and current_pos != 13 and self.mancala[-current_pos + 12] != 0:
-                captured = self.mancala[-current_pos + 12]
+            if current_pos > 6 and current_pos < 13 and self.mancala[current_pos] == 1 and self.mancala[12 - current_pos] != 0:
+                captured = self.mancala[12 - current_pos]
                 self.mancala[13] += 1 + captured
                 self.mancala[current_pos] = 0
-                self.mancala[-current_pos + 12] = 0
-                
+                self.mancala[12 - current_pos] = 0
+
                 # Show capture animation
                 draw_callback(self.mancala, animation_manager, highlight_pit=13,
                             ai1_prob=ai1_prob, ai2_prob=ai2_prob,
                             move_count=move_count, phase=phase)
                 time.sleep(0.3)
-            
+
             if current_pos == 13:
                 repeat_turn = True
-                
+
         else:  # South player (AI 1)
             while stones_to_distribute > 0:
                 current_pos += 1
@@ -427,47 +448,51 @@ class Mancala_Board:
                 else:
                     self.mancala[current_pos] += 1
                     stones_to_distribute -= 1
-                    
+
                     # Highlight the pit that just received a marble
                     draw_callback(self.mancala, animation_manager, highlight_pit=current_pos,
                                 ai1_prob=ai1_prob, ai2_prob=ai2_prob,
                                 move_count=move_count, phase=phase)
                     time.sleep(0.15)  # Pause to show each marble placement
-            
+
             # Capture logic
-            if current_pos < 6 and self.mancala[current_pos] == 1 and current_pos != 6 and self.mancala[-current_pos + 12] != 0:
-                captured = self.mancala[-current_pos + 12]
+            if current_pos >= 0 and current_pos < 6 and self.mancala[current_pos] == 1 and self.mancala[12 - current_pos] != 0:
+                captured = self.mancala[12 - current_pos]
                 self.mancala[6] += 1 + captured
                 self.mancala[current_pos] = 0
-                self.mancala[-current_pos + 12] = 0
-                
+                self.mancala[12 - current_pos] = 0
+
                 # Show capture animation
                 draw_callback(self.mancala, animation_manager, highlight_pit=6,
                             ai1_prob=ai1_prob, ai2_prob=ai2_prob,
                             move_count=move_count, phase=phase)
                 time.sleep(0.3)
-            
+
             if current_pos == 6:
                 repeat_turn = True
-        
+
         return repeat_turn
 
     def isEnd(self):
+        """
+        Check if game has ended (one side is empty).
+        FIXED: Winner is determined ONLY by stones in store pits (6 and 13).
+        Remaining stones in regular pits are NOT added to stores.
+        """
         if sum(self.mancala[0:6]) == 0:
-            self.mancala[13] += sum(self.mancala[7:13])
-            for i in range(14):
-                if i != 13 and i != 6:
-                    self.mancala[i] = 0
+            # AI 1's side is empty - game ends
             return True
         elif sum(self.mancala[7:13]) == 0:
-            self.mancala[6] += sum(self.mancala[0:6])
-            for i in range(14):
-                if i != 13 and i != 6:
-                    self.mancala[i] = 0
+            # AI 2's side is empty - game ends
             return True
         return False
 
     def husVal(self):
+        """
+        Heuristic evaluation function.
+        Returns difference in store scores: AI 2's store - AI 1's store
+        FIXED: Only considers stones in stores (pit 6 and 13), not remaining stones
+        """
         if self.isEnd():
             if self.mancala[13] > self.mancala[6]:
                 return 100
@@ -480,70 +505,121 @@ class Mancala_Board:
 
 
 def alphabeta(mancala, depth, alpha, beta, MinorMax):
+    """Alpha-beta pruning minimax algorithm with randomization for varied gameplay"""
     if depth == 0 or mancala.isEnd():
-        return mancala.husVal(), -1
-    if MinorMax:
+        # Add small random factor to evaluation to break ties
+        base_val = mancala.husVal()
+        random_factor = random.uniform(-0.5, 0.5)
+        return base_val + random_factor, -1
+
+    if MinorMax:  # Maximizing player (AI 2)
         v = -1000000
         player_move = -1
+        # Track moves with similar scores for random selection
+        best_moves = []
+
         for i in range(7, 13, 1):
-            if mancala.mancala[i] == 0: continue
+            if mancala.mancala[i] == 0:
+                continue
             a = Mancala_Board(mancala.mancala[:])
             minormax = a.player_move(i)
             newv, _ = alphabeta(a, depth - 1, alpha, beta, minormax)
-            if v < newv:
+
+            # If this move is clearly better, use it
+            if newv > v + 1:
                 player_move = i
                 v = newv
+                best_moves = [(i, newv)]
+            # If moves are similar (within 1 point), add to candidates
+            elif abs(newv - v) <= 1:
+                best_moves.append((i, newv))
+                if newv > v:
+                    v = newv
+
             alpha = max(alpha, v)
             if alpha >= beta:
                 break
+
+        # Randomly select from best moves if there are multiple good options
+        if len(best_moves) > 1:
+            player_move = random.choice(best_moves)[0]
+
         return v, player_move
-    else:
+    else:  # Minimizing player (AI 1)
         v = 1000000
         player_move = -1
+        # Track moves with similar scores for random selection
+        best_moves = []
+
         for i in range(0, 6, 1):
-            if mancala.mancala[i] == 0: continue
+            if mancala.mancala[i] == 0:
+                continue
             a = Mancala_Board(mancala.mancala[:])
             minormax = a.player_move(i)
             newv, _ = alphabeta(a, depth - 1, alpha, beta, not minormax)
-            if v > newv:
+
+            # If this move is clearly better, use it
+            if newv < v - 1:
                 player_move = i
                 v = newv
+                best_moves = [(i, newv)]
+            # If moves are similar (within 1 point), add to candidates
+            elif abs(newv - v) <= 1:
+                best_moves.append((i, newv))
+                if newv < v:
+                    v = newv
+
             beta = min(beta, v)
             if alpha >= beta:
                 break
+
+        # Randomly select from best moves if there are multiple good options
+        if len(best_moves) > 1:
+            player_move = random.choice(best_moves)[0]
+
         return v, player_move
 
 
 def ai_vs_ai():
     mancala_board = Mancala_Board(None)
     animation_manager = AnimationManager((Dimensions.SCREEN_WIDTH, Dimensions.SCREEN_HEIGHT))
-    
+
     running = True
-    ai1_turn = True
+    # Randomize who goes first for more varied games
+    ai1_turn = random.choice([True, False])
     move_count = 0
     phase = 0
-    
+
     animation_manager.start_transition(fade_in=True)
-    animation_manager.show_turn_indicator("AI 1's Turn", Colors.PLAYER1_PRIMARY)
-    
+    # Show which AI is starting
+    if ai1_turn:
+        animation_manager.show_turn_indicator("AI 1's Turn", Colors.PLAYER1_PRIMARY)
+        starting_player = "AI 1's Turn"
+    else:
+        animation_manager.show_turn_indicator("AI 2's Turn", Colors.PLAYER2_PRIMARY)
+        starting_player = "AI 2's Turn"
+
     ai1_prob = calculate_winning_probability(mancala_board.mancala, 1)
     ai2_prob = calculate_winning_probability(mancala_board.mancala, 2)
-    
+
     # Show initial board with fade-in animation
     start_time = time.time()
-    while time.time() - start_time < 2.0:  # Increased from 1.5 to 2.0 seconds
+    while time.time() - start_time < 2.0:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-        
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                sys.exit()
+
         animation_manager.update()
         phase += 0.5
         draw_board(mancala_board.mancala, animation_manager,
                    ai1_prob=ai1_prob, ai2_prob=ai2_prob,
-                   turn_message="AI 1's Turn", move_count=move_count, phase=phase)
+                   turn_message=starting_player, move_count=move_count, phase=phase)
         clock.tick(60)
-    
+
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -553,7 +629,11 @@ def ai_vs_ai():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     pass  # Speed up
-        
+                elif event.key == pygame.K_ESCAPE:
+                    # Exit the game during gameplay
+                    pygame.quit()
+                    sys.exit()
+
         if not mancala_board.isEnd():
             if ai1_turn:
                 # Show "AI 1 Thinking..." - 1 second
@@ -564,25 +644,33 @@ def ai_vs_ai():
                         if event.type == pygame.QUIT:
                             pygame.quit()
                             sys.exit()
+                        elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                            pygame.quit()
+                            sys.exit()
                     animation_manager.update()
                     phase += 0.5
                     draw_board(mancala_board.mancala, animation_manager,
                              ai1_prob=ai1_prob, ai2_prob=ai2_prob,
                              move_count=move_count, phase=phase)
                     clock.tick(60)
-                
-                _, ai_move = alphabeta(mancala_board, 5, -100000, 100000, False)
+
+                # Randomize AI search depth for variety (3-6)
+                ai_depth = random.randint(3, 6)
+                _, ai_move = alphabeta(mancala_board, ai_depth, -100000, 100000, False)
                 if ai_move != -1:
                     move_count += 1
-                    
+
                     # Show AI 1 thinking - highlight the pit it will choose - 1 second
                     board_rect = LayoutCalculator.get_board_rect(Dimensions.SCREEN_WIDTH, Dimensions.SCREEN_HEIGHT)
                     pit_positions = LayoutCalculator.get_pit_positions(board_rect)
-                    
+
                     pre_move_start = time.time()
                     while time.time() - pre_move_start < 1.0:
                         for event in pygame.event.get():
                             if event.type == pygame.QUIT:
+                                pygame.quit()
+                                sys.exit()
+                            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                                 pygame.quit()
                                 sys.exit()
                         animation_manager.update()
@@ -591,37 +679,40 @@ def ai_vs_ai():
                                  ai1_prob=ai1_prob, ai2_prob=ai2_prob,
                                  move_count=move_count, phase=phase)
                         clock.tick(60)
-                    
+
                     animation_manager.emit_fountain(*pit_positions[ai_move], count=35)
-                    
+
                     # Use animated move to show marble distribution step by step
                     def draw_callback(mancala, anim_mgr, highlight_pit, ai1_prob, ai2_prob, move_count, phase):
                         for event in pygame.event.get():
                             if event.type == pygame.QUIT:
                                 pygame.quit()
                                 sys.exit()
+                            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                                pygame.quit()
+                                sys.exit()
                         anim_mgr.update()
                         draw_board(mancala, anim_mgr, highlight_pit=highlight_pit,
                                  ai1_prob=ai1_prob, ai2_prob=ai2_prob,
                                  move_count=move_count, phase=phase)
-                    
+
                     repeat_turn = mancala_board.animated_player_move(
-                        ai_move, animation_manager, ai1_prob, ai2_prob, 
+                        ai_move, animation_manager, ai1_prob, ai2_prob,
                         move_count, phase, draw_callback
                     )
-                    
+
                     ai1_prob = calculate_winning_probability(mancala_board.mancala, 1)
                     ai2_prob = calculate_winning_probability(mancala_board.mancala, 2)
-                    
+
                     if repeat_turn:
                         animation_manager.show_turn_indicator("AI 1 Extra Turn!", Colors.NEON_GREEN)
                     else:
                         animation_manager.show_turn_indicator("AI 2's Turn", Colors.PLAYER2_PRIMARY)
-                    
+
                     draw_board(mancala_board.mancala, animation_manager, highlight_pit=ai_move,
                              ai1_prob=ai1_prob, ai2_prob=ai2_prob,
                              move_count=move_count, phase=phase)
-                    
+
                     # Show the result - 2 seconds when switching players, 1 second for extra turn
                     result_display_time = 1.0 if repeat_turn else 2.0
                     move_start = time.time()
@@ -630,13 +721,16 @@ def ai_vs_ai():
                             if event.type == pygame.QUIT:
                                 pygame.quit()
                                 sys.exit()
+                            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                                pygame.quit()
+                                sys.exit()
                         animation_manager.update()
                         phase += 0.5
                         draw_board(mancala_board.mancala, animation_manager, highlight_pit=ai_move,
                                  ai1_prob=ai1_prob, ai2_prob=ai2_prob,
                                  move_count=move_count, phase=phase)
                         clock.tick(60)
-                    
+
                     ai1_turn = repeat_turn
                 else:
                     ai1_turn = False
@@ -649,25 +743,33 @@ def ai_vs_ai():
                         if event.type == pygame.QUIT:
                             pygame.quit()
                             sys.exit()
+                        elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                            pygame.quit()
+                            sys.exit()
                     animation_manager.update()
                     phase += 0.5
                     draw_board(mancala_board.mancala, animation_manager,
                              ai1_prob=ai1_prob, ai2_prob=ai2_prob,
                              move_count=move_count, phase=phase)
                     clock.tick(60)
-                
-                _, ai_move = alphabeta(mancala_board, 5, -100000, 100000, True)
+
+                # Randomize AI search depth for variety (3-6)
+                ai_depth = random.randint(3, 6)
+                _, ai_move = alphabeta(mancala_board, ai_depth, -100000, 100000, True)
                 if ai_move != -1:
                     move_count += 1
-                    
+
                     # Show AI 2 thinking - highlight the pit it will choose - 1 second
                     board_rect = LayoutCalculator.get_board_rect(Dimensions.SCREEN_WIDTH, Dimensions.SCREEN_HEIGHT)
                     pit_positions = LayoutCalculator.get_pit_positions(board_rect)
-                    
+
                     pre_move_start = time.time()
                     while time.time() - pre_move_start < 1.0:
                         for event in pygame.event.get():
                             if event.type == pygame.QUIT:
+                                pygame.quit()
+                                sys.exit()
+                            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                                 pygame.quit()
                                 sys.exit()
                         animation_manager.update()
@@ -676,37 +778,40 @@ def ai_vs_ai():
                                  ai1_prob=ai1_prob, ai2_prob=ai2_prob,
                                  move_count=move_count, phase=phase)
                         clock.tick(60)
-                    
+
                     animation_manager.emit_fountain(*pit_positions[ai_move], count=35)
-                    
+
                     # Use animated move to show marble distribution step by step
                     def draw_callback(mancala, anim_mgr, highlight_pit, ai1_prob, ai2_prob, move_count, phase):
                         for event in pygame.event.get():
                             if event.type == pygame.QUIT:
                                 pygame.quit()
                                 sys.exit()
+                            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                                pygame.quit()
+                                sys.exit()
                         anim_mgr.update()
                         draw_board(mancala, anim_mgr, highlight_pit=highlight_pit,
                                  ai1_prob=ai1_prob, ai2_prob=ai2_prob,
                                  move_count=move_count, phase=phase)
-                    
+
                     repeat_turn = mancala_board.animated_player_move(
-                        ai_move, animation_manager, ai1_prob, ai2_prob, 
+                        ai_move, animation_manager, ai1_prob, ai2_prob,
                         move_count, phase, draw_callback
                     )
-                    
+
                     ai1_prob = calculate_winning_probability(mancala_board.mancala, 1)
                     ai2_prob = calculate_winning_probability(mancala_board.mancala, 2)
-                    
+
                     if repeat_turn:
                         animation_manager.show_turn_indicator("AI 2 Extra Turn!", Colors.NEON_PINK)
                     else:
                         animation_manager.show_turn_indicator("AI 1's Turn", Colors.PLAYER1_PRIMARY)
-                    
+
                     draw_board(mancala_board.mancala, animation_manager, highlight_pit=ai_move,
                              ai1_prob=ai1_prob, ai2_prob=ai2_prob,
                              move_count=move_count, phase=phase)
-                    
+
                     # Show the result - 2 seconds when switching players, 1 second for extra turn
                     result_display_time = 1.0 if repeat_turn else 2.0
                     move_start = time.time()
@@ -715,38 +820,44 @@ def ai_vs_ai():
                             if event.type == pygame.QUIT:
                                 pygame.quit()
                                 sys.exit()
+                            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                                pygame.quit()
+                                sys.exit()
                         animation_manager.update()
                         phase += 0.5
                         draw_board(mancala_board.mancala, animation_manager, highlight_pit=ai_move,
                                  ai1_prob=ai1_prob, ai2_prob=ai2_prob,
                                  move_count=move_count, phase=phase)
                         clock.tick(60)
-                    
+
                     ai1_turn = not repeat_turn
                 else:
                     ai1_turn = True
-        
+
         animation_manager.update()
         phase += 0.5
-        
+
         if mancala_board.isEnd():
             ai1_score = mancala_board.mancala[6]
             ai2_score = mancala_board.mancala[13]
-            
+
             animation_manager.trigger_shake(intensity=18)
             animation_manager.emit_particles(Dimensions.SCREEN_WIDTH // 2,
                                            Dimensions.SCREEN_HEIGHT // 2, count=100, explosion=True)
-            
+
             if ai2_score > ai1_score:
                 winner_message = "AI 2 WINS!"
             elif ai1_score > ai2_score:
                 winner_message = "AI 1 WINS!"
             else:
                 winner_message = "TIE GAME!"
-            
+
             for _ in range(40):
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                    elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                         pygame.quit()
                         sys.exit()
                 animation_manager.update()
@@ -755,23 +866,29 @@ def ai_vs_ai():
                           ai1_prob=ai1_prob, ai2_prob=ai2_prob,
                           move_count=move_count, phase=phase)
                 clock.tick(30)
-            
+
             game_over_popup(winner_message, ai1_score, ai2_score)
-            
+
             waiting = True
             while waiting:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         pygame.quit()
                         sys.exit()
+                    elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                        pygame.quit()
+                        sys.exit()
                     elif event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_SPACE:
+                            # Restart the game
                             waiting = False
                             running = False
+                            ai_vs_ai()  # Restart by calling the function again
+                            return  # Exit this instance
                         elif event.key == pygame.K_ESCAPE:
                             pygame.quit()
                             sys.exit()
-        
+
         clock.tick(60)
 
 
@@ -779,38 +896,38 @@ def splash_screen():
     """Ultra-modern splash screen"""
     phase = 0
     waiting = True
-    
+
     while waiting:
         draw_animated_background(screen, phase)
-        
+
         title_pos = (Dimensions.SCREEN_WIDTH // 2, Dimensions.SCREEN_HEIGHT // 2 - 120)
         draw_neon_glow(screen, title_pos, 200, Colors.NEON_BLUE, 0.6, layers=8)
         draw_text_with_glow(screen, fonts.mega, "MANCALA", title_pos,
                            Colors.TEXT_PRIMARY, glow_color=Colors.NEON_BLUE,
                            glow_intensity=5)
-        
+
         subtitle_pos = (Dimensions.SCREEN_WIDTH // 2, Dimensions.SCREEN_HEIGHT // 2 + 20)
         draw_text_with_glow(screen, fonts.large, "AI vs AI Mode",
                            subtitle_pos, Colors.NEON_PURPLE,
                            glow_color=Colors.NEON_PURPLE, glow_intensity=3)
-        
+
         pulse = 0.5 + 0.5 * pygame.math.Vector2(1, 0).rotate(phase * 3).x
         prompt_alpha = int(150 + 105 * pulse)
         prompt = fonts.normal.render("Press any key to start", True, (*Colors.TEXT_PRIMARY, prompt_alpha))
         prompt_rect = prompt.get_rect(center=(Dimensions.SCREEN_WIDTH // 2,
                                               Dimensions.SCREEN_HEIGHT // 2 + 160))
         screen.blit(prompt, prompt_rect)
-        
+
         pygame.display.flip()
         phase += 0.5
-        
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
                 waiting = False
-        
+
         clock.tick(60)
 
 
@@ -818,4 +935,4 @@ def splash_screen():
 if __name__ == "__main__":
     ai_vs_ai()
 
-'''ai_vs_ai_enhanced.py ends here'''
+'''ai_vs_ai_enhanced_fixed.py ends here'''
