@@ -30,15 +30,6 @@ CARDS = [
         "icon": "🎮"
     },
     {
-        "label": "👥 Player vs Player",
-        "subtitle": "Local multiplayer",
-        "description": "Play with a friend on the same device",
-        "file": "player_vs_player.py",
-        "color1": Colors.NEON_ORANGE,
-        "color2": Colors.NEON_YELLOW,
-        "icon": "👥"
-    },
-    {
         "label": "🤖 AI vs AI",
         "subtitle": "Watch AI battle",
         "description": "Observe two AI players compete",
@@ -49,11 +40,11 @@ CARDS = [
     }
 ]
 
-# Card layout
-CARD_WIDTH = 380
-CARD_HEIGHT = 260
-CARD_SPACING = 50
-start_x = (WINDOW_SIZE[0] - (CARD_WIDTH * 3 + CARD_SPACING * 2)) // 2
+# Card layout - Updated for 2 cards
+CARD_WIDTH = 420
+CARD_HEIGHT = 280
+CARD_SPACING = 80
+start_x = (WINDOW_SIZE[0] - (CARD_WIDTH * 2 + CARD_SPACING)) // 2
 start_y = WINDOW_SIZE[1] // 2 - CARD_HEIGHT // 2 + 60
 
 card_rects = []
